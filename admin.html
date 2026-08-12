@@ -692,7 +692,13 @@
         </div>
         <div class="form-group">
             <label>رابط الصورة (اختياري)</label>
-            <input type="text" id="projectImage" placeholder="https://example.com/image.jpg">
+            <input type="text" id="projectImage" placeholder="https://i.imgur.com/xxxxxx.jpg">
+            <small style="color:var(--gray); font-size:0.75rem; margin-top:5px; display:block;">
+                <i class="fas fa-info-circle" style="color:var(--primary-light);"></i> 
+                ارفع الصورة على <a href="https://imgur.com/upload" target="_blank" style="color:var(--accent);">Imgur</a> 
+                أو <a href="https://postimages.org" target="_blank" style="color:var(--accent);">Postimages</a> 
+                وانسخ الرابط هنا
+            </small>
         </div>
         <div class="modal-actions">
             <button class="btn btn-outline" onclick="closeModal('projectModal')">إلغاء</button>
@@ -793,7 +799,9 @@ async function getFileSha() {
 async function readProjectsFromGitHub() {
     try {
         const data = await githubApi(`/contents/${CONFIG.filePath}?ref=${CONFIG.branch}`);
-        const content = atob(data.content.replace(/\s/g, ''));
+        const base64 = data.content.replace(/\s/g, '');
+        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        const content = new TextDecoder().decode(bytes);
         return JSON.parse(content);
     } catch (e) {
         console.error('Error reading from GitHub:', e);
@@ -807,7 +815,11 @@ async function writeProjectsToGitHub(projectsData) {
     }
 
     const sha = await getFileSha();
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(projectsData, null, 2))));
+
+    // تحويل JSON إلى UTF-8 ثم Base64 (يدعم العربية)
+    const jsonStr = JSON.stringify(projectsData, null, 2);
+    const bytes = new TextEncoder().encode(jsonStr);
+    const content = btoa(String.fromCharCode(...bytes));
 
     const body = {
         message: 'Update projects from Baldar Admin',
